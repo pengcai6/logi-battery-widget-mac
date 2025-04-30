@@ -35,13 +35,13 @@ def read_and_bump_version():
     parts[2] = str(int(parts[2]) + 1)
     new_version = ".".join(parts)
     VERSION_FILE.write_text(new_version + "\n")
-    print(f"🚀 Bumped version: {version} to {new_version}")
+    print(f"Bumped version: {version} to {new_version}")
     return new_version
 
 
 # --- PyInstaller Build ---
 def run_pyinstaller():
-    print("🏗  Building with pyinstaller...")
+    print("Building with pyinstaller...")
     main_script_path = PY_SRC_DIR / "main.py"
     subprocess.run(
         [
@@ -58,42 +58,42 @@ def run_pyinstaller():
 # --- Copy Executable to MSIX folder ---
 def copy_to_msix_folder():
     if not DIST_EXE.exists():
-        raise FileNotFoundError(f"❌ Built executable not found: {DIST_EXE}")
+        raise FileNotFoundError(f"Built executable not found: {DIST_EXE}")
     MSIX_APPFILES_DIR.mkdir(parents=True, exist_ok=True)
     target_path = MSIX_APPFILES_DIR / f"{BUILD_NAME}.exe"
     shutil.copy2(DIST_EXE, target_path)
-    print(f"✅ Copied to MSIX AppFiles: {target_path}")
+    print(f"Copied to MSIX AppFiles: {target_path}")
 
 
 # --- Logo Asset ---
 def copy_logo_to_assets():
     if not ASSETS_SRC_FILE.exists():
-        raise FileNotFoundError(f"❌ Logo not found at: {ASSETS_SRC_FILE}")
+        raise FileNotFoundError(f"Logo not found at: {ASSETS_SRC_FILE}")
     ASSETS_DST_DIR.mkdir(parents=True, exist_ok=True)
     target_path = ASSETS_DST_DIR / "logo.png"
     shutil.copy2(ASSETS_SRC_FILE, target_path)
-    print(f"🖼️  Copied logo to MSIX Assets: {target_path}")
+    print(f"Copied logo to MSIX Assets: {target_path}")
 
 
 # --- Manifest Version Injection ---
 def update_manifest_version(version: str):
-    print(f"🔧 Updating AppxManifest.xml to version {version}")
+    print(f"Updating AppxManifest.xml to version {version}")
     path = APPX_MANIFEST_TEMPLATE
 
     if not path.exists():
-        raise FileNotFoundError(f"❌ Manifest not found: {path}")
+        raise FileNotFoundError(f"Manifest not found: {path}")
 
     text = path.read_text(encoding="utf-8")
     updated = re.sub(
         r'(<Identity[^>]+Version=")[^"]+"', lambda m: m.group(1) + version + '"', text
     )
     path.write_text(updated, encoding="utf-8")
-    print("✅ Manifest version updated.")
+    print("Manifest version updated.")
 
 
 # --- MakeAppx Package ---
 def run_makeappx():
-    print("📦 Creating MSIX package...")
+    print("Creating MSIX package...")
 
     makeappx_path = shutil.which("makeappx")
 
@@ -112,7 +112,7 @@ def run_makeappx():
                 candidate = sdk_base / ver / "x64" / "makeappx.exe"
                 if candidate.exists():
                     makeappx_path = str(candidate)
-                    print(f"🔍 Using makeappx.exe from: {makeappx_path}")
+                    print(f"Using makeappx.exe from: {makeappx_path}")
                     break
 
         # Fallback: use first found in any SDK version
@@ -121,11 +121,11 @@ def run_makeappx():
                 possible = subdir / "x64" / "makeappx.exe"
                 if possible.exists():
                     makeappx_path = str(possible)
-                    print(f"🔍 Found fallback makeappx.exe at: {makeappx_path}")
+                    print(f"Found fallback makeappx.exe at: {makeappx_path}")
                     break
 
     if not makeappx_path:
-        raise FileNotFoundError("❌ makeappx.exe not found.")
+        raise FileNotFoundError("makeappx.exe not found.")
 
     subprocess.run(
         [
@@ -140,7 +140,7 @@ def run_makeappx():
         check=True,
     )
 
-    print(f"✅ MSIX created: {MSIX_OUTPUT}")
+    print(f"MSIX created: {MSIX_OUTPUT}")
 
 
 # --- Main ---
