@@ -34,9 +34,10 @@ jobs:
         run: |
           python buildandcopy.py --release
 
-      - name: Check MSIX output
+      - name: Check MSIX file exists
+        shell: bash
         run: |
-          if not exist "../logi-battery-tray.msix" (
-            echo "❌ MSIX file not found!"
+          if [ ! -f "../logi-battery-tray.msix" ]; then
+            echo "MSIX file not found!"
             exit 1
-          )
+          fi
