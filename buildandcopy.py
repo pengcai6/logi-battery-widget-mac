@@ -35,7 +35,7 @@ def read_and_bump_version():
     parts[2] = str(int(parts[2]) + 1)
     new_version = ".".join(parts)
     VERSION_FILE.write_text(new_version + "\n")
-    print(f"Bumped version: {version} to {new_version}")
+    print(f"🚀 Bumped version: {version} to {new_version}")
     return new_version
 
 
@@ -58,7 +58,7 @@ def run_pyinstaller():
 # --- Copy Executable to MSIX folder ---
 def copy_to_msix_folder():
     if not DIST_EXE.exists():
-        raise FileNotFoundError(f"Built executable not found: {DIST_EXE}")
+        raise FileNotFoundError(f"❌ Built executable not found: {DIST_EXE}")
     MSIX_APPFILES_DIR.mkdir(parents=True, exist_ok=True)
     target_path = MSIX_APPFILES_DIR / f"{BUILD_NAME}.exe"
     shutil.copy2(DIST_EXE, target_path)
@@ -68,7 +68,7 @@ def copy_to_msix_folder():
 # --- Logo Asset ---
 def copy_logo_to_assets():
     if not ASSETS_SRC_FILE.exists():
-        raise FileNotFoundError(f"Logo not found at: {ASSETS_SRC_FILE}")
+        raise FileNotFoundError(f"❌ Logo not found at: {ASSETS_SRC_FILE}")
     ASSETS_DST_DIR.mkdir(parents=True, exist_ok=True)
     target_path = ASSETS_DST_DIR / "logo.png"
     shutil.copy2(ASSETS_SRC_FILE, target_path)
@@ -81,7 +81,7 @@ def update_manifest_version(version: str):
     path = APPX_MANIFEST_TEMPLATE
 
     if not path.exists():
-        raise FileNotFoundError(f"Manifest not found: {path}")
+        raise FileNotFoundError(f"❌ Manifest not found: {path}")
 
     text = path.read_text(encoding="utf-8")
     updated = re.sub(
@@ -125,7 +125,7 @@ def run_makeappx():
                     break
 
     if not makeappx_path:
-        raise FileNotFoundError("makeappx.exe not found.")
+        raise FileNotFoundError("❌ makeappx.exe not found.")
 
     subprocess.run(
         [
