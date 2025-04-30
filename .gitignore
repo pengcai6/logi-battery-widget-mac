@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env.*
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# MSIX packaging
+*.msix
+logi-battery-tray.msix
+certs/
+*.pfx
+
+# VSCode
+.vscode/
+
+# User settings
+*.log
+*.db
+*.sqlite
+*.bak
+
+# System files
+.DS_Store
+Thumbs.db

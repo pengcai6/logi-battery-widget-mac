@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: logi_battery_tray
+Version: 0.1.0
+Summary: Tray app to monitor Logitech mouse battery level using Options+ data
+Author: Fabio Romariz
+Requires-Python: >=3.7
+Requires-Dist: pystray==0.19.5
+Requires-Dist: Pillow==10.2.0
+Requires-Dist: psutil==5.9.8
+Requires-Dist: python-dotenv==1.0.1
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

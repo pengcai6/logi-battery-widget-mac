@@ -1,0 +1,6 @@
+battery
+config
+icon
+main
+optionspluscheck
+settings

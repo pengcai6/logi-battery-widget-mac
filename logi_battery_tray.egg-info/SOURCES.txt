@@ -1,0 +1,13 @@
+battery.py
+config.py
+icon.py
+main.py
+optionspluscheck.py
+settings.py
+setup.py
+logi_battery_tray.egg-info/PKG-INFO
+logi_battery_tray.egg-info/SOURCES.txt
+logi_battery_tray.egg-info/dependency_links.txt
+logi_battery_tray.egg-info/entry_points.txt
+logi_battery_tray.egg-info/requires.txt
+logi_battery_tray.egg-info/top_level.txt
