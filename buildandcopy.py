@@ -1,3 +1,4 @@
+import os
 import subprocess
 import shutil
 import re
@@ -32,6 +33,8 @@ def read_and_bump_version():
     new_version = ".".join(parts)
     VERSION_FILE.write_text(new_version + "\n")
     print(f"Bumped version: {version} -> {new_version}")
+    with open(os.environ["GITHUB_ENV"], "a") as env_file:
+        env_file.write(f"VERSION={new_version}\n")
     return new_version
 
 
