@@ -84,7 +84,9 @@ def update_manifest_version(version):
         raise FileNotFoundError(f"Manifest not found: {path}")
     text = path.read_text(encoding="utf-8")
     updated = re.sub(
-        r'(<Identity[^>]+Version=")([^"]+)(")', r"\1" + version + r"\3", text
+        r'(<Identity[^>]+Version=")[^"]+"',
+        lambda m: f'{m.group(1)}{version}"',
+        text,
     )
     MANIFEST_TARGET.write_text(updated, encoding="utf-8")
     print(f"Updated AppxManifest.xml to version {version}")
