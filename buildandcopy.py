@@ -35,7 +35,7 @@ def read_and_bump_version():
     parts[2] = str(int(parts[2]) + 1)
     new_version = ".".join(parts)
     VERSION_FILE.write_text(new_version + "\n")
-    print(f"Bumped version: {version} → {new_version}")
+    print(f"Bumped version: {version} to {new_version}")
     return new_version
 
 
