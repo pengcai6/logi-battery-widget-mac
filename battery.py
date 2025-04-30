@@ -5,6 +5,7 @@ from datetime import datetime
 
 DB_PATH = Path.home() / "AppData/Local/LogiOptionsPlus/settings.db"
 
+
 def get_battery_info():
     try:
         conn = sqlite3.connect(DB_PATH)

@@ -2,7 +2,6 @@ import subprocess
 import psutil
 import threading
 import time
-import os
 from config import load_config
 
 config = load_config()

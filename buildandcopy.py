@@ -1,7 +1,6 @@
 import subprocess
 import shutil
 from pathlib import Path
-import xml.etree.ElementTree as ET
 import argparse
 import re
 

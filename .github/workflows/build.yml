@@ -1,0 +1,35 @@
+name: Build and Lint
+
+on:
+  push:
+    branches: [main, develop, feature/**]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          flake8 . --exclude=dist,build,.venv --max-line-length=120
+
+      - name: Build executable
+        run: |
+          pyinstaller --noconsole --onefile --name logi-battery-tray main.py
