@@ -3,7 +3,6 @@ import shutil
 import re
 from pathlib import Path
 import argparse
-import os
 
 # Argument parsing
 parser = argparse.ArgumentParser()
