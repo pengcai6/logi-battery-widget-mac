@@ -10,6 +10,8 @@ private let appGroupId = "group.com.cai.logi-battery-widget"
 private let snapshotFileName = "battery_snapshot.json"
 private let refreshInterval: TimeInterval = 600
 private let overrideKey = "deviceNameOverrides"
+private let launchAgentLabel = "com.cai.logi-battery-widget.launcher"
+private let systemLaunchAgentPath = "/Library/LaunchAgents/com.cai.logi-battery-widget.launcher.plist"
 
 struct AppBatteryDevice: Identifiable, Codable {
     var id: String { deviceId }
@@ -39,7 +41,7 @@ final class BatteryStore: ObservableObject {
         if #available(macOS 13.0, *) {
             launchAtLoginEnabled = (SMAppService.mainApp.status == .enabled)
         } else {
-            launchAtLoginEnabled = false
+            launchAtLoginEnabled = isLaunchAgentInstalled() || isSystemLaunchAgentInstalled()
         }
         #else
         launchAtLoginEnabled = false
@@ -78,20 +80,42 @@ final class BatteryStore: ObservableObject {
 
     func setLaunchAtLogin(_ enabled: Bool) {
         #if !APP_EXTENSION
-        guard #available(macOS 13.0, *) else {
-            lastError = "Launch at login requires macOS 13 or newer."
-            launchAtLoginEnabled = false
-            return
-        }
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
+        if #available(macOS 13.0, *) {
+            do {
+                if enabled {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+                launchAtLoginEnabled = enabled
+                return
+            } catch {
+                lastError = "SMAppService failed, falling back to LaunchAgent."
             }
-            launchAtLoginEnabled = enabled
-        } catch {
-            lastError = error.localizedDescription
+        }
+        if enabled {
+            if installLaunchAgent() {
+                launchAtLoginEnabled = true
+            } else {
+                if installSystemLaunchAgentWithPrompt() {
+                    launchAtLoginEnabled = true
+                    lastError = "Installed system LaunchAgent with admin privileges."
+                } else {
+                    lastError = "Failed to install LaunchAgent."
+                    launchAtLoginEnabled = false
+                }
+            }
+        } else {
+            if removeLaunchAgent() {
+                launchAtLoginEnabled = false
+            } else {
+                if removeSystemLaunchAgentWithPrompt() {
+                    launchAtLoginEnabled = false
+                    lastError = "Removed system LaunchAgent."
+                } else {
+                    lastError = "Failed to remove LaunchAgent."
+                }
+            }
         }
         #else
         lastError = "Launch at login is not available in extensions."
@@ -381,6 +405,110 @@ private func persistOverrides(_ overrides: [String: String]) {
     defaults.set(overrides, forKey: overrideKey)
 }
 
+private func launchAgentPlistURL() -> URL {
+    let dir = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+    return dir.appendingPathComponent("\(launchAgentLabel).plist")
+}
+
+private func isLaunchAgentInstalled() -> Bool {
+    FileManager.default.fileExists(atPath: launchAgentPlistURL().path)
+}
+
+private func installLaunchAgent() -> Bool {
+    guard let execURL = Bundle.main.executableURL else { return false }
+    let plistURL = launchAgentPlistURL()
+    do {
+        try FileManager.default.createDirectory(
+            at: plistURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let plist: [String: Any] = [
+            "Label": launchAgentLabel,
+            "ProgramArguments": [execURL.path],
+            "RunAtLoad": true,
+            "KeepAlive": true
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        try data.write(to: plistURL, options: .atomic)
+        _ = runLaunchctl(["bootstrap", "gui/\(getuid())", plistURL.path])
+        _ = runLaunchctl(["enable", "gui/\(getuid())/\(launchAgentLabel)"])
+        return true
+    } catch {
+        return false
+    }
+}
+
+private func removeLaunchAgent() -> Bool {
+    let plistURL = launchAgentPlistURL()
+    _ = runLaunchctl(["bootout", "gui/\(getuid())", plistURL.path])
+    do {
+        if FileManager.default.fileExists(atPath: plistURL.path) {
+            try FileManager.default.removeItem(at: plistURL)
+        }
+        return true
+    } catch {
+        return false
+    }
+}
+
+private func isSystemLaunchAgentInstalled() -> Bool {
+    FileManager.default.fileExists(atPath: systemLaunchAgentPath)
+}
+
+private func installSystemLaunchAgentWithPrompt() -> Bool {
+    guard let execURL = Bundle.main.executableURL else { return false }
+    let plist: [String: Any] = [
+        "Label": launchAgentLabel,
+        "ProgramArguments": [execURL.path],
+        "RunAtLoad": true,
+        "KeepAlive": true
+    ]
+    do {
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(launchAgentLabel).plist")
+        try data.write(to: tmpURL, options: .atomic)
+        return runAppleScriptWithAdmin("""
+        do shell script "cp '\(tmpURL.path)' '\(systemLaunchAgentPath)' && launchctl bootstrap system '\(systemLaunchAgentPath)' && launchctl enable system/\(launchAgentLabel)" with administrator privileges
+        """)
+    } catch {
+        return false
+    }
+}
+
+private func removeSystemLaunchAgentWithPrompt() -> Bool {
+    return runAppleScriptWithAdmin("""
+    do shell script "launchctl bootout system '\(systemLaunchAgentPath)' || true; rm -f '\(systemLaunchAgentPath)'" with administrator privileges
+    """)
+}
+
+private func runAppleScriptWithAdmin(_ script: String) -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+    process.arguments = ["-e", script]
+    do {
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    } catch {
+        return false
+    }
+}
+
+@discardableResult
+private func runLaunchctl(_ args: [String]) -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+    process.arguments = args
+    do {
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    } catch {
+        return false
+    }
+}
+
 struct MenuBarView: View {
     @ObservedObject var store: BatteryStore
 
@@ -408,6 +536,20 @@ struct MenuBarView: View {
                     .foregroundColor(.secondary)
             }
             Divider()
+            #if !APP_EXTENSION
+            Button {
+                store.setLaunchAtLogin(!store.launchAtLoginEnabled)
+            } label: {
+                HStack {
+                    Text("Launch at login")
+                    Spacer()
+                    if store.launchAtLoginEnabled {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            #endif
             Button("Refresh Now") { store.refresh() }
             Button("Open App") {
                 NSApp.activate(ignoringOtherApps: true)

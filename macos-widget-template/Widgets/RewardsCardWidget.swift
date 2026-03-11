@@ -72,6 +72,7 @@ struct BatterySnapshot: Codable {
 
 struct LogiBatteryEntryView: View {
     let entry: LogiBatteryWidget.Entry
+    @Environment(\.widgetFamily) private var family
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -88,24 +89,44 @@ struct LogiBatteryEntryView: View {
                 Text("No data yet")
                     .foregroundColor(.secondary)
             } else {
-                ForEach(entry.snapshot.devices.prefix(4)) { device in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: deviceIconName(for: device))
-                                .foregroundColor(.secondary)
-                            Text(device.deviceName)
-                                .font(.subheadline)
-                                .lineLimit(1)
-                            Spacer()
+                if family == .systemSmall {
+                    let device = entry.snapshot.devices.first
+                    if let device {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: deviceIconName(for: device))
+                                    .foregroundColor(.secondary)
+                                Text(device.deviceName)
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                            }
                             Text("\(device.level)%")
-                                .font(.subheadline)
+                                .font(.title)
                                 .bold()
                                 .foregroundColor(batteryColor(device.level))
+                            BatteryBar(level: device.level)
                         }
-                        BatteryBar(level: device.level)
-                        Text("Updated: \(formatDate(device.updatedAt))")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    ForEach(entry.snapshot.devices.prefix(4)) { device in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Image(systemName: deviceIconName(for: device))
+                                    .foregroundColor(.secondary)
+                                Text(device.deviceName)
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(device.level)%")
+                                    .font(.subheadline)
+                                    .bold()
+                                    .foregroundColor(batteryColor(device.level))
+                            }
+                            BatteryBar(level: device.level)
+                            Text("Updated: \(formatDate(device.updatedAt))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
