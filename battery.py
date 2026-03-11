@@ -1,14 +1,43 @@
-import sqlite3
 import json
-from pathlib import Path
+import sqlite3
+import sys
 from datetime import datetime
+from pathlib import Path
 
-DB_PATH = Path.home() / "AppData/Local/LogiOptionsPlus/settings.db"
+
+def _get_db_path():
+    if sys.platform == "darwin":
+        return Path.home() / "Library/Application Support/LogiOptionsPlus/settings.db"
+    if sys.platform.startswith("win"):
+        return Path.home() / "AppData/Local/LogiOptionsPlus/settings.db"
+    return None
 
 
-def get_battery_info():
+def _format_device_name(device_id: str) -> str:
+    parts = device_id.split("-")
+    if parts and len(parts[-1]) == 5 and all(c in "0123456789abcdef" for c in parts[-1].lower()):
+        parts = parts[:-1]
+    return " ".join(parts).title()
+
+
+def _parse_timestamp(timestamp_raw):
+    if not timestamp_raw:
+        return None
     try:
-        conn = sqlite3.connect(DB_PATH)
+        timestamp = int(timestamp_raw)
+        return datetime.fromtimestamp(timestamp)
+    except (ValueError, TypeError):
+        return None
+
+
+def get_battery_infos():
+    db_path = _get_db_path()
+    if not db_path or not db_path.exists():
+        print("[WARN] Logi Options+ DB not found")
+        return []
+
+    try:
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT file FROM data LIMIT 1")
         row = cursor.fetchone()
@@ -16,22 +45,37 @@ def get_battery_info():
 
         if not row:
             print("[WARN] No data in settings.db")
-            return None, None
+            return []
 
         data = json.loads(row[0])
-        battery = data.get("battery/mx-master-3s-2b034/warning_notification", {})
-        level = battery.get("batteryLevel")
-        timestamp_raw = battery.get("time")
-
-        if level is not None and timestamp_raw:
-            # Handle string or int timestamp
-            try:
-                timestamp = int(timestamp_raw)
-                updated_at = datetime.fromtimestamp(timestamp)
-            except ValueError:
-                updated_at = None
-            return level, updated_at
+        results = []
+        for key, value in data.items():
+            if not key.startswith("battery/") or not key.endswith("/warning_notification"):
+                continue
+            if not isinstance(value, dict):
+                continue
+            level = value.get("batteryLevel")
+            if level is None:
+                continue
+            device_id = key.split("/")[1]
+            results.append(
+                {
+                    "device_id": device_id,
+                    "device_name": _format_device_name(device_id),
+                    "level": level,
+                    "updated_at": _parse_timestamp(value.get("time")),
+                }
+            )
+        return results
 
     except Exception as e:
         print(f"[ERROR] Failed to read battery info from DB: {e}")
+        return []
+
+
+def get_battery_info():
+    infos = get_battery_infos()
+    if not infos:
         return None, None
+    primary = min(infos, key=lambda item: item.get("level", 0))
+    return primary.get("level"), primary.get("updated_at")

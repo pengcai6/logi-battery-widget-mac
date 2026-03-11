@@ -31,3 +31,10 @@ certs/
 # System files
 .DS_Store
 Thumbs.db
+__pycache__/
+.DS_Store
+.venv/
+.omx/
+Fruta.app/
+Fruta.zip
+LogiBattery.dmg
