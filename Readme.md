@@ -9,6 +9,7 @@ This repo now includes a macOS SwiftUI app + WidgetKit widget under `macos-widge
 `~/Library/Application Support/LogiOptionsPlus/settings.db`
 
 and writes a snapshot into an App Group container for the widget to render.
+<img width="1708" height="1098" alt="image" src="https://github.com/user-attachments/assets/045505b6-9402-419a-aac7-eb0150ccbc80" />
 
 ### Manual allow (unsigned builds)
 
